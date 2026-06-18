@@ -632,62 +632,62 @@
                 const userDataStr = localStorage.getItem('userData');
                 tipoUtente = localStorage.getItem('tipoUtente');
 
-                if (!userDataStr || !tipoUtente) {
-                    alert("Per accedere al configuratore devi prima effettuare il login.");
-                    window.location.href = 'Login.html';
-                    return;
-                }
-
-                // Redirect operator (admin) away from configurator
-                if (tipoUtente === 'OPERATORE') {
-                    window.location.href = 'Admin.html';
-                    return;
-                }
-
-                user = JSON.parse(userDataStr);
-
                 const userMenu = document.getElementById('userMenu');
                 const adminLink = document.getElementById('adminLink');
                 const storicoLink = document.getElementById('storicoLink');
                 const profileBadge = document.getElementById('profileBadge');
 
-                if (tipoUtente === 'OPERATORE') {
-                    adminLink.style.display = 'block';
-                } else {
+                if (userDataStr && tipoUtente) {
+                    // Redirect operator (admin) away from configurator
+                    if (tipoUtente === 'OPERATORE') {
+                        window.location.href = 'Admin.html';
+                        return;
+                    }
+
+                    user = JSON.parse(userDataStr);
+
                     if (storicoLink) storicoLink.style.display = 'block';
-                }
 
-                let displayName = '';
-                let detailsHtml = '';
+                    let displayName = '';
+                    let detailsHtml = '';
 
-                if (tipoUtente === 'CLIENTE') {
-                    displayName = user.nome;
-                    detailsHtml = `<strong>Cliente Privato</strong><br>C.F.: ${user.codiceFiscale}<br>Email: ${user.email}`;
-                } else if (tipoUtente === 'AZIENDA') {
-                    displayName = user.ragioneSociale;
-                    detailsHtml = `<strong>Azienda</strong><br>P.IVA: ${user.partitaIva}<br>Email: ${user.email}`;
+                    if (tipoUtente === 'CLIENTE') {
+                        displayName = user.nome;
+                        detailsHtml = `<strong>Cliente Privato</strong><br>C.F.: ${user.codiceFiscale}<br>Email: ${user.email}`;
+                    } else if (tipoUtente === 'AZIENDA') {
+                        displayName = user.ragioneSociale;
+                        detailsHtml = `<strong>Azienda</strong><br>P.IVA: ${user.partitaIva}<br>Email: ${user.email}`;
+                    } else {
+                        displayName = user.nome || user.username;
+                        detailsHtml = `<strong>Operatore Concessionaria</strong><br>Ruolo: ${user.ruolo}`;
+                    }
+
+                    // Setup unified navbar user menu
+                    userMenu.innerHTML = `
+                        <div class="dropdown">
+                            <button class="btn btn-nav-action dropdown-toggle" type="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                                Ciao, ${displayName}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="dropdownUser">
+                                <li><a class="dropdown-item" href="Configuratore.html">Configuratore</a></li>
+                                ${tipoUtente !== 'OPERATORE' ? '<li><a class="dropdown-item" href="Storico.html">Storico</a></li>' : ''}
+                                ${tipoUtente === 'OPERATORE' ? '<li><a class="dropdown-item" href="Admin.html">Gestione Richieste</a></li>' : ''}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="handleLogout(event)">Esci</a></li>
+                            </ul>
+                        </div>
+                    `;
+
+                    if (profileBadge) profileBadge.innerHTML = detailsHtml;
                 } else {
-                    displayName = user.nome || user.username;
-                    detailsHtml = `<strong>Operatore Concessionaria</strong><br>Ruolo: ${user.ruolo}`;
+                    // Imposta il menu di navigazione per utente ospite
+                    if (userMenu) {
+                        userMenu.innerHTML = `<a class="btn btn-nav-action" href="Login.html" id="loginBtn">Accedi</a>`;
+                    }
+                    if (profileBadge) {
+                        profileBadge.innerHTML = `<strong>Utente Ospite</strong><br>Accedi o registrati per effettuare un acquisto.`;
+                    }
                 }
-
-                // Setup unified navbar user menu
-                userMenu.innerHTML = `
-                    <div class="dropdown">
-                        <button class="btn btn-nav-action dropdown-toggle" type="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
-                            Ciao, ${displayName}
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="dropdownUser">
-                            <li><a class="dropdown-item" href="Configuratore.html">Configuratore</a></li>
-                            ${tipoUtente !== 'OPERATORE' ? '<li><a class="dropdown-item" href="Storico.html">Storico</a></li>' : ''}
-                            ${tipoUtente === 'OPERATORE' ? '<li><a class="dropdown-item" href="Admin.html">Gestione Richieste</a></li>' : ''}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="#" onclick="handleLogout(event)">Esci</a></li>
-                        </ul>
-                    </div>
-                `;
-
-                profileBadge.innerHTML = detailsHtml;
             });
 
             // Funzione per gestire il logout
@@ -699,6 +699,12 @@
             }
 
             function selezionaModello(element) {
+                if (!user) {
+                    alert("Per accedere alla configurazione personalizzata e procedere con l'acquisto devi prima effettuare l'accesso o registrarti.");
+                    window.location.href = 'Login.html';
+                    return;
+                }
+
                 // Rimuovi active da tutti i modelli
                 document.querySelectorAll('.car-card').forEach(card => {
                     card.classList.remove('active');
