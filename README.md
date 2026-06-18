@@ -1,7 +1,5 @@
 # 🚗 Concessionaria Auto - Piattaforma Gestione Concessionaria Auto 
 
-🚀 **[Clicca qui per usare la Web App Live] (https://concessionaria-auto.onrender.com)** 
-
 ![Java](https://img.shields.io/badge/Java-17%2B-orange?style=for-the-badge&logo=java)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?style=for-the-badge&logo=springboot)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?style=for-the-badge&logo=mysql)
@@ -10,6 +8,7 @@
 ![Theme](https://img.shields.io/badge/Theme-Dark%20Glassmorphism-black?style=for-the-badge)
 
 Questa applicazione web completa per la gestione e configurazione auto unisce un solido backend **Spring Boot** con un database relazionale **MySQL** e un'interfaccia frontend reattiva sviluppata in **Vanilla Javascript** e **Bootstrap 5**, caratterizzata da un'estetica moderna in stile **Dark Glassmorphism** (tema scuro con sfocature a specchio e pulsanti neon/glow).
+🚀 **[Clicca qui per usare la Web App Live] (https://concessionaria-auto.onrender.com)** 
 
 ---
 
