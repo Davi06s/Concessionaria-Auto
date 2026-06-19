@@ -34,60 +34,102 @@ public class DemoApplication {
 
 			System.out.println(">>> Avvio popolamento database con JdbcTemplate...");
 
+			// Rileva case sensitivity per tutte le tabelle
+			String marcaTable = "MARCA";
+			String modelloTable = "MODELLO";
+			String coloreTable = "COLORE";
+			String optionalTable = "OPTIONAL";
+			String configurazioneTable = "CONFIGURAZIONE";
+			String joinTable = "CONFIGURAZIONE_OPTIONAL";
+
+			try (java.sql.Connection conn = jdbcTemplate.getDataSource().getConnection()) {
+				java.sql.DatabaseMetaData metaData = conn.getMetaData();
+				try (java.sql.ResultSet rs = metaData.getTables(null, null, "%", new String[]{"TABLE"})) {
+					while (rs.next()) {
+						String tableName = rs.getString("TABLE_NAME");
+						if (tableName.equalsIgnoreCase("marca")) marcaTable = tableName;
+						if (tableName.equalsIgnoreCase("modello")) modelloTable = tableName;
+						if (tableName.equalsIgnoreCase("colore")) coloreTable = tableName;
+						if (tableName.equalsIgnoreCase("optional")) optionalTable = tableName;
+						if (tableName.equalsIgnoreCase("configurazione")) configurazioneTable = tableName;
+						if (tableName.equalsIgnoreCase("configurazione_optional")) joinTable = tableName;
+					}
+				}
+			} catch (Exception e) {
+				System.err.println("Errore nel rilevamento dei nomi delle tabelle: " + e.getMessage());
+			}
+
+			System.out.println(">>> Utilizzo tabelle per il database: " +
+					"Marca=" + marcaTable + ", Modello=" + modelloTable + 
+					", Colore=" + coloreTable + ", Optional=" + optionalTable + 
+					", Configurazione=" + configurazioneTable + ", JoinTable=" + joinTable);
+
+			// Crea la tabella di join se non esiste, rispettando il case sensitivity del database
+			String createJoinTableSql = String.format(
+				"CREATE TABLE IF NOT EXISTS %s (" +
+				"  IDConfigurazione INT NOT NULL," +
+				"  IDOptional INT NOT NULL," +
+				"  PRIMARY KEY (IDConfigurazione, IDOptional)," +
+				"  FOREIGN KEY (IDConfigurazione) REFERENCES %s (IDConfigurazione) ON DELETE CASCADE," +
+				"  FOREIGN KEY (IDOptional) REFERENCES %s (IDOptional) ON DELETE CASCADE" +
+				") ENGINE=InnoDB", joinTable, configurazioneTable, optionalTable);
+			jdbcTemplate.execute(createJoinTableSql);
+			System.out.println(">>> Tabella di join " + joinTable + " verificata/creata correttamente.");
+
 			// Seed MARCA with exact IDs
-			jdbcTemplate.execute("INSERT INTO MARCA (IDMarca, NomeMarca) VALUES (1, 'Alfa Romeo') ON DUPLICATE KEY UPDATE NomeMarca = 'Alfa Romeo'");
-			jdbcTemplate.execute("INSERT INTO MARCA (IDMarca, NomeMarca) VALUES (2, 'Audi') ON DUPLICATE KEY UPDATE NomeMarca = 'Audi'");
-			jdbcTemplate.execute("INSERT INTO MARCA (IDMarca, NomeMarca) VALUES (3, 'Porsche') ON DUPLICATE KEY UPDATE NomeMarca = 'Porsche'");
-			jdbcTemplate.execute("INSERT INTO MARCA (IDMarca, NomeMarca) VALUES (4, 'BMW') ON DUPLICATE KEY UPDATE NomeMarca = 'BMW'");
-			jdbcTemplate.execute("INSERT INTO MARCA (IDMarca, NomeMarca) VALUES (5, 'Mercedes') ON DUPLICATE KEY UPDATE NomeMarca = 'Mercedes'");
-			jdbcTemplate.execute("INSERT INTO MARCA (IDMarca, NomeMarca) VALUES (6, 'Volkswagen') ON DUPLICATE KEY UPDATE NomeMarca = 'Volkswagen'");
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDMarca, NomeMarca) VALUES (1, 'Alfa Romeo') ON DUPLICATE KEY UPDATE NomeMarca = 'Alfa Romeo'", marcaTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDMarca, NomeMarca) VALUES (2, 'Audi') ON DUPLICATE KEY UPDATE NomeMarca = 'Audi'", marcaTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDMarca, NomeMarca) VALUES (3, 'Porsche') ON DUPLICATE KEY UPDATE NomeMarca = 'Porsche'", marcaTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDMarca, NomeMarca) VALUES (4, 'BMW') ON DUPLICATE KEY UPDATE NomeMarca = 'BMW'", marcaTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDMarca, NomeMarca) VALUES (5, 'Mercedes') ON DUPLICATE KEY UPDATE NomeMarca = 'Mercedes'", marcaTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDMarca, NomeMarca) VALUES (6, 'Volkswagen') ON DUPLICATE KEY UPDATE NomeMarca = 'Volkswagen'", marcaTable));
 
 			// Seed MODELLO with exact IDs
-			jdbcTemplate.execute("INSERT INTO MODELLO (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (1, 1, 'Alfa Romeo Giulia', 'Berlina Premium', 45000.00) ON DUPLICATE KEY UPDATE IDMarca = 1, NomeModello = 'Alfa Romeo Giulia', Descrizione = 'Berlina Premium', PrezzoBase = 45000.00");
-			jdbcTemplate.execute("INSERT INTO MODELLO (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (2, 2, 'Audi A3 Sportback', 'Compact Sport', 36000.00) ON DUPLICATE KEY UPDATE IDMarca = 2, NomeModello = 'Audi A3 Sportback', Descrizione = 'Compact Sport', PrezzoBase = 36000.00");
-			jdbcTemplate.execute("INSERT INTO MODELLO (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (3, 3, 'Porsche 911 Carrera', 'Icona Sportiva', 125000.00) ON DUPLICATE KEY UPDATE IDMarca = 3, NomeModello = 'Porsche 911 Carrera', Descrizione = 'Icona Sportiva', PrezzoBase = 125000.00");
-			jdbcTemplate.execute("INSERT INTO MODELLO (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (4, 4, 'BMW M4 Coupe', 'Coupé Sportiva', 98000.00) ON DUPLICATE KEY UPDATE IDMarca = 4, NomeModello = 'BMW M4 Coupe', Descrizione = 'Coupé Sportiva', PrezzoBase = 98000.00");
-			jdbcTemplate.execute("INSERT INTO MODELLO (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (5, 5, 'Mercedes-AMG GT', 'Supercar di Lusso', 140000.00) ON DUPLICATE KEY UPDATE IDMarca = 5, NomeModello = 'Mercedes-AMG GT', Descrizione = 'Supercar di Lusso', PrezzoBase = 140000.00");
-			jdbcTemplate.execute("INSERT INTO MODELLO (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (6, 6, 'Volkswagen Golf', 'Compatta Iconica', 29000.00) ON DUPLICATE KEY UPDATE IDMarca = 6, NomeModello = 'Volkswagen Golf', Descrizione = 'Compatta Iconica', PrezzoBase = 29000.00");
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (1, 1, 'Alfa Romeo Giulia', 'Berlina Premium', 45000.00) ON DUPLICATE KEY UPDATE IDMarca = 1, NomeModello = 'Alfa Romeo Giulia', Descrizione = 'Berlina Premium', PrezzoBase = 45000.00", modelloTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (2, 2, 'Audi A3 Sportback', 'Compact Sport', 36000.00) ON DUPLICATE KEY UPDATE IDMarca = 2, NomeModello = 'Audi A3 Sportback', Descrizione = 'Compact Sport', PrezzoBase = 36000.00", modelloTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (3, 3, 'Porsche 911 Carrera', 'Icona Sportiva', 125000.00) ON DUPLICATE KEY UPDATE IDMarca = 3, NomeModello = 'Porsche 911 Carrera', Descrizione = 'Icona Sportiva', PrezzoBase = 125000.00", modelloTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (4, 4, 'BMW M4 Coupe', 'Coupé Sportiva', 98000.00) ON DUPLICATE KEY UPDATE IDMarca = 4, NomeModello = 'BMW M4 Coupe', Descrizione = 'Coupé Sportiva', PrezzoBase = 98000.00", modelloTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (5, 5, 'Mercedes-AMG GT', 'Supercar di Lusso', 140000.00) ON DUPLICATE KEY UPDATE IDMarca = 5, NomeModello = 'Mercedes-AMG GT', Descrizione = 'Supercar di Lusso', PrezzoBase = 140000.00", modelloTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDModello, IDMarca, NomeModello, Descrizione, PrezzoBase) VALUES (6, 6, 'Volkswagen Golf', 'Compatta Iconica', 29000.00) ON DUPLICATE KEY UPDATE IDMarca = 6, NomeModello = 'Volkswagen Golf', Descrizione = 'Compatta Iconica', PrezzoBase = 29000.00", modelloTable));
 
 			// Seed COLORE with exact IDs
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (1, 'Bianco Alfa', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Bianco Alfa', Sovrapprezzo = 0.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (2, 'Rosso Competizione', 1200.00) ON DUPLICATE KEY UPDATE NomeColore = 'Rosso Competizione', Sovrapprezzo = 1200.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (3, 'Grigio Daytona', 950.00) ON DUPLICATE KEY UPDATE NomeColore = 'Grigio Daytona', Sovrapprezzo = 950.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (4, 'Nero Mythos', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Mythos', Sovrapprezzo = 0.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (5, 'Bianco Ghiaccio', 900.00) ON DUPLICATE KEY UPDATE NomeColore = 'Bianco Ghiaccio', Sovrapprezzo = 900.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (6, 'Giallo Racing', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Giallo Racing', Sovrapprezzo = 0.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (7, 'Nero Soft', 1500.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Soft', Sovrapprezzo = 1500.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (8, 'Rosso Crayon', 2800.00) ON DUPLICATE KEY UPDATE NomeColore = 'Rosso Crayon', Sovrapprezzo = 2800.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (9, 'Verde Isle of Man', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Verde Isle of Man', Sovrapprezzo = 0.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (10, 'Giallo Sao Paulo', 1400.00) ON DUPLICATE KEY UPDATE NomeColore = 'Giallo Sao Paulo', Sovrapprezzo = 1400.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (11, 'Nero Carbonio', 1100.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Carbonio', Sovrapprezzo = 1100.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (12, 'Bianco Polare', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Bianco Polare', Sovrapprezzo = 0.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (13, 'Grigio Selenite Magno', 2200.00) ON DUPLICATE KEY UPDATE NomeColore = 'Grigio Selenite Magno', Sovrapprezzo = 2200.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (14, 'Giallo Sole', 1800.00) ON DUPLICATE KEY UPDATE NomeColore = 'Giallo Sole', Sovrapprezzo = 1800.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (15, 'Grigio Urano', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Grigio Urano', Sovrapprezzo = 0.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (16, 'Rosso Re', 750.00) ON DUPLICATE KEY UPDATE NomeColore = 'Rosso Re', Sovrapprezzo = 750.00");
-			jdbcTemplate.execute("INSERT INTO COLORE (IDColore, NomeColore, Sovrapprezzo) VALUES (17, 'Nero Perla', 850.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Perla', Sovrapprezzo = 850.00");
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (1, 'Bianco Alfa', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Bianco Alfa', Sovrapprezzo = 0.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (2, 'Rosso Competizione', 1200.00) ON DUPLICATE KEY UPDATE NomeColore = 'Rosso Competizione', Sovrapprezzo = 1200.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (3, 'Grigio Daytona', 950.00) ON DUPLICATE KEY UPDATE NomeColore = 'Grigio Daytona', Sovrapprezzo = 950.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (4, 'Nero Mythos', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Mythos', Sovrapprezzo = 0.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (5, 'Bianco Ghiaccio', 900.00) ON DUPLICATE KEY UPDATE NomeColore = 'Bianco Ghiaccio', Sovrapprezzo = 900.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (6, 'Giallo Racing', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Giallo Racing', Sovrapprezzo = 0.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (7, 'Nero Soft', 1500.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Soft', Sovrapprezzo = 1500.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (8, 'Rosso Crayon', 2800.00) ON DUPLICATE KEY UPDATE NomeColore = 'Rosso Crayon', Sovrapprezzo = 2800.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (9, 'Verde Isle of Man', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Verde Isle of Man', Sovrapprezzo = 0.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (10, 'Giallo Sao Paulo', 1400.00) ON DUPLICATE KEY UPDATE NomeColore = 'Giallo Sao Paulo', Sovrapprezzo = 1400.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (11, 'Nero Carbonio', 1100.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Carbonio', Sovrapprezzo = 1100.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (12, 'Bianco Polare', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Bianco Polare', Sovrapprezzo = 0.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (13, 'Grigio Selenite Magno', 2200.00) ON DUPLICATE KEY UPDATE NomeColore = 'Grigio Selenite Magno', Sovrapprezzo = 2200.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (14, 'Giallo Sole', 1800.00) ON DUPLICATE KEY UPDATE NomeColore = 'Giallo Sole', Sovrapprezzo = 1800.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (15, 'Grigio Urano', 0.00) ON DUPLICATE KEY UPDATE NomeColore = 'Grigio Urano', Sovrapprezzo = 0.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (16, 'Rosso Re', 750.00) ON DUPLICATE KEY UPDATE NomeColore = 'Rosso Re', Sovrapprezzo = 750.00", coloreTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDColore, NomeColore, Sovrapprezzo) VALUES (17, 'Nero Perla', 850.00) ON DUPLICATE KEY UPDATE NomeColore = 'Nero Perla', Sovrapprezzo = 850.00", coloreTable));
 
 			// Seed OPTIONAL with exact IDs
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (1, 'Cerchi da 19\" Sport', 'Cerchi in lega sportivi', 1300.00) ON DUPLICATE KEY UPDATE Nome = 'Cerchi da 19\" Sport', Descrizione = 'Cerchi in lega sportivi', Prezzo = 1300.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (2, 'Tetto Panoramico', 'Tetto in vetro apribile', 1600.00) ON DUPLICATE KEY UPDATE Nome = 'Tetto Panoramico', Descrizione = 'Tetto in vetro apribile', Prezzo = 1600.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (3, 'Pacchetto ADAS Livello 2', 'Assistenza alla guida avanzata', 1800.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto ADAS Livello 2', Descrizione = 'Assistenza alla guida avanzata', Prezzo = 1800.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (4, 'Fari LED Matrix', 'Proiettori anteriori intelligenti', 1100.00) ON DUPLICATE KEY UPDATE Nome = 'Fari LED Matrix', Descrizione = 'Proiettori anteriori intelligenti', Prezzo = 1100.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (5, 'Pacchetto S-Line interior', 'Finiture sportive interne S-Line', 1500.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto S-Line interior', Descrizione = 'Finiture sportive interne S-Line', Prezzo = 1500.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (6, 'Audio Bang & Olufsen', 'Impianto audio premium 3D', 950.00) ON DUPLICATE KEY UPDATE Nome = 'Audio Bang & Olufsen', Descrizione = 'Impianto audio premium 3D', Prezzo = 950.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (7, 'Freni Carbo-Ceramica PCCB', 'Freni ad altissime prestazioni', 9200.00) ON DUPLICATE KEY UPDATE Nome = 'Freni Carbo-Ceramica PCCB', Descrizione = 'Freni ad altissime prestazioni', Prezzo = 9200.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (8, 'Asse Posteriore Sterzante', 'Migliora agilità e stabilità', 2300.00) ON DUPLICATE KEY UPDATE Nome = 'Asse Posteriore Sterzante', Descrizione = 'Migliora agilità e stabilità', Prezzo = 2300.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (9, 'Pacchetto Sport Chrono', 'Cronometro analogico e modalità Sport Plus', 2400.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto Sport Chrono', Descrizione = 'Cronometro analogico e modalità Sport Plus', Prezzo = 2400.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (10, 'Pacchetto Carbonio M', 'Finiture esterne in carbonio', 4500.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto Carbonio M', Descrizione = 'Finiture esterne in carbonio', Prezzo = 4500.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (11, 'Scarico Sportivo M', 'Suono sportivo ottimizzato', 2100.00) ON DUPLICATE KEY UPDATE Nome = 'Scarico Sportivo M', Descrizione = 'Suono sportivo ottimizzato', Prezzo = 2100.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (12, 'Cerchi Forgiati M da 20\"', 'Cerchi ultraleggeri neri', 2800.00) ON DUPLICATE KEY UPDATE Nome = 'Cerchi Forgiati M da 20\"', Descrizione = 'Cerchi ultraleggeri neri', Prezzo = 2800.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (13, 'Pacchetto Aerodinamico AMG', 'Alettone posteriore fisso e deflettori', 3800.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto Aerodinamico AMG', Descrizione = 'Alettone posteriore fisso e deflettori', Prezzo = 3800.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (14, 'Sedili Performance AMG', 'Sedili sportivi a guscio', 2500.00) ON DUPLICATE KEY UPDATE Nome = 'Sedili Performance AMG', Descrizione = 'Sedili sportivi a guscio', Prezzo = 2500.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (15, 'Scarico Performance AMG', 'Valvole di scarico attive per sound estremo', 1800.00) ON DUPLICATE KEY UPDATE Nome = 'Scarico Performance AMG', Descrizione = 'Valvole di scarico attive per sound estremo', Prezzo = 1800.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (16, 'Pacchetto R-Line exterior', 'Cerchi sportivi e paraurti R-Line', 1200.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto R-Line exterior', Descrizione = 'Cerchi sportivi e paraurti R-Line', Prezzo = 1200.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (17, 'Proiettori LED IQ.Light', 'Fari Matrix adattivi', 950.00) ON DUPLICATE KEY UPDATE Nome = 'Proiettori LED IQ.Light', Descrizione = 'Fari Matrix adattivi', Prezzo = 950.00");
-			jdbcTemplate.execute("INSERT INTO OPTIONAL (IDOptional, Nome, Descrizione, Prezzo) VALUES (18, 'Navigatore Discover Pro', 'Schermo infotainment 10\" con navigatore', 800.00) ON DUPLICATE KEY UPDATE Nome = 'Navigatore Discover Pro', Descrizione = 'Schermo infotainment 10\" con navigatore', Prezzo = 800.00");
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (1, 'Cerchi da 19\" Sport', 'Cerchi in lega sportivi', 1300.00) ON DUPLICATE KEY UPDATE Nome = 'Cerchi da 19\" Sport', Descrizione = 'Cerchi in lega sportivi', Prezzo = 1300.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (2, 'Tetto Panoramico', 'Tetto in vetro apribile', 1600.00) ON DUPLICATE KEY UPDATE Nome = 'Tetto Panoramico', Descrizione = 'Tetto in vetro apribile', Prezzo = 1600.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (3, 'Pacchetto ADAS Livello 2', 'Assistenza alla guida avanzata', 1800.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto ADAS Livello 2', Descrizione = 'Assistenza alla guida avanzata', Prezzo = 1800.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (4, 'Fari LED Matrix', 'Proiettori anteriori intelligenti', 1100.00) ON DUPLICATE KEY UPDATE Nome = 'Fari LED Matrix', Descrizione = 'Proiettori anteriori intelligenti', Prezzo = 1100.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (5, 'Pacchetto S-Line interior', 'Finiture sportive interne S-Line', 1500.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto S-Line interior', Descrizione = 'Finiture sportive interne S-Line', Prezzo = 1500.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (6, 'Audio Bang & Olufsen', 'Impianto audio premium 3D', 950.00) ON DUPLICATE KEY UPDATE Nome = 'Audio Bang & Olufsen', Descrizione = 'Impianto audio premium 3D', Prezzo = 950.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (7, 'Freni Carbo-Ceramica PCCB', 'Freni ad altissime prestazioni', 9200.00) ON DUPLICATE KEY UPDATE Nome = 'Freni Carbo-Ceramica PCCB', Descrizione = 'Freni ad altissime prestazioni', Prezzo = 9200.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (8, 'Asse Posteriore Sterzante', 'Migliora agilità e stabilità', 2300.00) ON DUPLICATE KEY UPDATE Nome = 'Asse Posteriore Sterzante', Descrizione = 'Migliora agilità e stabilità', Prezzo = 2300.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (9, 'Pacchetto Sport Chrono', 'Cronometro analogico e modalità Sport Plus', 2400.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto Sport Chrono', Descrizione = 'Cronometro analogico e modalità Sport Plus', Prezzo = 2400.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (10, 'Pacchetto Carbonio M', 'Finiture esterne in carbonio', 4500.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto Carbonio M', Descrizione = 'Finiture esterne in carbonio', Prezzo = 4500.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (11, 'Scarico Sportivo M', 'Suono sportivo ottimizzato', 2100.00) ON DUPLICATE KEY UPDATE Nome = 'Scarico Sportivo M', Descrizione = 'Suono sportivo ottimizzato', Prezzo = 2100.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (12, 'Cerchi Forgiati M da 20\"', 'Cerchi ultraleggeri neri', 2800.00) ON DUPLICATE KEY UPDATE Nome = 'Cerchi Forgiati M da 20\"', Descrizione = 'Cerchi ultraleggeri neri', Prezzo = 2800.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (13, 'Pacchetto Aerodinamico AMG', 'Alettone posteriore fisso e deflettori', 3800.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto Aerodinamico AMG', Descrizione = 'Alettone posteriore fisso e deflettori', Prezzo = 3800.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (14, 'Sedili Performance AMG', 'Sedili sportivi a guscio', 2500.00) ON DUPLICATE KEY UPDATE Nome = 'Sedili Performance AMG', Descrizione = 'Sedili sportivi a guscio', Prezzo = 2500.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (15, 'Scarico Performance AMG', 'Valvole di scarico attive per sound estremo', 1800.00) ON DUPLICATE KEY UPDATE Nome = 'Scarico Performance AMG', Descrizione = 'Valvole di scarico attive per sound estremo', Prezzo = 1800.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (16, 'Pacchetto R-Line exterior', 'Cerchi sportivi e paraurti R-Line', 1200.00) ON DUPLICATE KEY UPDATE Nome = 'Pacchetto R-Line exterior', Descrizione = 'Cerchi sportivi e paraurti R-Line', Prezzo = 1200.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (17, 'Proiettori LED IQ.Light', 'Fari Matrix adattivi', 950.00) ON DUPLICATE KEY UPDATE Nome = 'Proiettori LED IQ.Light', Descrizione = 'Fari Matrix adattivi', Prezzo = 950.00", optionalTable));
+			jdbcTemplate.execute(String.format("INSERT INTO %s (IDOptional, Nome, Descrizione, Prezzo) VALUES (18, 'Navigatore Discover Pro', 'Schermo infotainment 10\" con navigatore', 800.00) ON DUPLICATE KEY UPDATE Nome = 'Navigatore Discover Pro', Descrizione = 'Schermo infotainment 10\" con navigatore', Prezzo = 800.00", optionalTable));
 
 			System.out.println(">>> Database allineato e riempito con le nuove auto, colori e optional!");
 		};
